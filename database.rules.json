@@ -7,7 +7,9 @@
       }
     },
     "admins": {
-      "$uid": { ".read": "auth != null && auth.uid === $uid" }
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid"
+      }
     },
     "licenses": {
       ".read": "auth != null && root.child('admins/' + auth.uid).val() === true",
@@ -27,6 +29,37 @@
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "refcodes": {
+      ".read": "auth != null && root.child('admins/' + auth.uid).val() === true",
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && !data.exists() && newData.child('uid').val() === auth.uid",
+        ".validate": "$code.matches(/^[A-Z0-9]{6}$/) && newData.hasChildren(['uid','at']) && newData.child('at').isNumber()"
+      }
+    },
+    "refby": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.child('uid').val() !== auth.uid && root.child('refcodes/' + newData.child('code').val() + '/uid').val() === newData.child('uid').val()",
+        ".validate": "newData.hasChildren(['uid','code','at']) && newData.child('at').isNumber() && newData.child('at').val() <= now + 60000 && newData.child('at').val() > now - 600000"
+      }
+    },
+    "refs": {
+      ".read": "auth != null && root.child('admins/' + auth.uid).val() === true",
+      "$owner": {
+        ".read": "auth != null && auth.uid === $owner",
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('refby/' + auth.uid + '/uid').val() === $owner",
+          ".validate": "newData.hasChildren(['at']) && newData.child('at').isNumber() && newData.child('at').val() <= now + 60000 && newData.child('at').val() > now - 600000"
+        }
+      }
+    },
+    "tglink": {
+      "$code": {
+        ".write": "auth != null && !data.exists() && newData.child('uid').val() === auth.uid",
+        ".validate": "$code.matches(/^[A-Z0-9]{10}$/) && newData.hasChildren(['uid','at']) && newData.child('at').isNumber()"
       }
     }
   }

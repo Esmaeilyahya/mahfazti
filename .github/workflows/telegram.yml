@@ -1,0 +1,38 @@
+name: telegram-bot
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: telegram-bot
+  cancel-in-progress: false
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Check bot is configured
+        id: chk
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+        run: if [ -z "$TG_TOKEN" ]; then echo "skip=1" >> "$GITHUB_OUTPUT"; echo "TG_TOKEN not set — skipping"; fi
+      - uses: actions/checkout@v4
+        if: steps.chk.outputs.skip != '1'
+      - uses: actions/setup-node@v4
+        if: steps.chk.outputs.skip != '1'
+        with:
+          node-version: 20
+      - name: Install
+        if: steps.chk.outputs.skip != '1'
+        working-directory: scripts
+        run: npm install --no-audit --no-fund
+      - name: Read Telegram messages
+        if: steps.chk.outputs.skip != '1'
+        run: node scripts/tg-poll.mjs
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          FIREBASE_SA: ${{ secrets.FIREBASE_SA }}
+          STRICT: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
+          DB_URL: https://my-financial-system-7a929-default-rtdb.europe-west1.firebasedatabase.app
