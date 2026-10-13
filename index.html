@@ -19,7 +19,7 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "50612862465",
   appId: "1:50612862465:web:9dc2f9547b9ac287c2ca00"
 };
-window.PUSH_VAPID = null;
+window.PUSH_VAPID = 'BKrmMpYdKmiTbz3zqIpHEfMHeMoN4Z6ftyk23ENB1qWQ2PwjMCkPpRzWP85auU1mL1DHgzUS9-gTCKTI2fyH0EQ';
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2009,7 +2009,7 @@ function pwaInit(){if(!fbMode()||!('serviceWorker' in navigator)||location.proto
   navigator.serviceWorker.register('sw.js').then(reg=>{reg.update().catch(()=>{});const had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had)swUpdated()});setInterval(()=>reg.update().catch(()=>{}),30*60e3)}).catch(e=>console.warn('sw',e));
   addEventListener('beforeinstallprompt',e=>{e.preventDefault();INSTALL_EVT=e;if($('#app').style.display==='block'&&VIEW==='set')render()})}
 function swUpdated(){const t=$('#toast');t.innerHTML='🔄 نزلت نسخة جديدة من محفظتي <button class="lnk" style="margin-inline-start:10px;font-weight:800;color:var(--gold)" onclick="location.reload()">حدّث دلوقتي</button>';t.className='on act';clearTimeout(t._t)}
-const APP_V='2026.10.14-b';
+const APP_V='2026.10.14-c';
 const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
 async function installApp(){if(INSTALL_EVT){INSTALL_EVT.prompt();const r=await INSTALL_EVT.userChoice;INSTALL_EVT=null;if(r.outcome==='accepted')toast('📲 اتثبت التطبيق');render();return}
