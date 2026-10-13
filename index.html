@@ -474,7 +474,7 @@ input[type=range].rng{width:100%;accent-color:var(--gold);height:28px}
 .asm.bot .asb{background:var(--card);border:1px solid var(--line);border-end-start-radius:4px}
 .asb .tx:nth-of-type(n+4){display:none}.asb .aa{font-size:14px;line-height:1.85}.asb .as{font-size:12px;color:var(--ink2);margin-top:3px}.asb .tx{margin:6px 0 0}
 .mq{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line2);font-size:13px}.mq:last-child{border:0}.mqb{display:flex;gap:6px;flex:none}.mqb button{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);font-size:19px;transition:.15s}.mqb button:hover{transform:scale(1.12);border-color:var(--gold)}
-.fbk{display:grid;gap:6px;margin:0 0 10px;padding:10px;border:1px dashed var(--line);border-radius:12px}.fbk>div{display:flex;gap:6px;align-items:center}.fbk input{flex:1;min-width:0;padding:7px 9px;border-radius:9px;border:1px solid var(--line);background:var(--bg2);color:var(--ink)}.fbk input[type=number]{flex:none;width:80px}
+.fbk{display:grid;gap:6px;margin:0 0 10px;padding:10px;border:1px dashed var(--line);border-radius:12px}.fbk>div{display:flex;gap:6px;align-items:center;min-width:0}.fbk{grid-template-columns:minmax(0,1fr)}.fbk input:not([type=number]){width:0}.fbk input{flex:1;min-width:0;padding:7px 9px;border-radius:9px;border:1px solid var(--line);background:var(--bg2);color:var(--ink)}.fbk input[type=number]{flex:none;width:80px}
 .wx{display:flex;gap:14px;align-items:center;padding:14px 16px;border-radius:18px;margin-bottom:14px;border:1px solid var(--line);background:linear-gradient(120deg,var(--wa,#1d2b4a),var(--card))}
 .wx.sun{--wa:rgba(242,181,74,.28)}.wx.fair{--wa:rgba(91,151,247,.25)}.wx.cloud{--wa:rgba(138,155,187,.28)}.wx.rain{--wa:rgba(244,114,114,.25)}.wx.storm{--wa:rgba(167,139,250,.32)}
 .wxi{font-size:46px;line-height:1;flex:none;filter:drop-shadow(0 4px 10px rgba(0,0,0,.25))}.wxb{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--ink2);flex:1;min-width:0}.wxb>b{font-size:16px;color:var(--ink)}
@@ -519,6 +519,7 @@ input.calc{border-style:dashed!important;color:var(--gold)!important}
 .prol{display:grid;gap:6px;font-size:13.5px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--bg2)}
 .pro-b{border-color:color-mix(in srgb,var(--gold) 55%,var(--line));background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 10%,var(--card)),var(--card))}
 .adm .tb td{font-size:12.5px}
+.card-h>.ibtn,.card-h>button.ibtn{flex:none;white-space:nowrap}
 @media (max-width:900px){.g2,.g2.eq,.hero .grid{grid-template-columns:1fr}}
 @media (max-width:640px){
   main{padding:14px 12px 120px}.topbar .in{padding:8px 12px}.brand span,.ibtn .lbl,.ibtn kbd{display:none}
@@ -2008,7 +2009,7 @@ function pwaInit(){if(!fbMode()||!('serviceWorker' in navigator)||location.proto
   navigator.serviceWorker.register('sw.js').then(reg=>{reg.update().catch(()=>{});const had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had)swUpdated()});setInterval(()=>reg.update().catch(()=>{}),30*60e3)}).catch(e=>console.warn('sw',e));
   addEventListener('beforeinstallprompt',e=>{e.preventDefault();INSTALL_EVT=e;if($('#app').style.display==='block'&&VIEW==='set')render()})}
 function swUpdated(){const t=$('#toast');t.innerHTML='🔄 نزلت نسخة جديدة من محفظتي <button class="lnk" style="margin-inline-start:10px;font-weight:800;color:var(--gold)" onclick="location.reload()">حدّث دلوقتي</button>';t.className='on act';clearTimeout(t._t)}
-const APP_V='2026.10.14-a';
+const APP_V='2026.10.14-b';
 const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
 async function installApp(){if(INSTALL_EVT){INSTALL_EVT.prompt();const r=await INSTALL_EVT.userChoice;INSTALL_EVT=null;if(r.outcome==='accepted')toast('📲 اتثبت التطبيق');render();return}
@@ -2841,7 +2842,7 @@ function pauseMsg(t){const b=DB.settings.base,v=conv(t.amount,t.cur,b),hs=hoursT
 function geoTag(id){if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(p=>{const t=DB.tx.find(x=>x.id===id);if(!t)return;t.loc=[+p.coords.latitude.toFixed(4),+p.coords.longitude.toFixed(4)];save()},()=>{},{timeout:8000,maximumAge:300000,enableHighAccuracy:false})}
 function feelCard(){const f=feelS(),s=salP(),sw=(k,l,d)=>`<label class="chk" style="margin:0 0 6px"><input type="checkbox" ${f[k]?'checked':''} onchange="setFeel('${k}',this.checked)"> ${l}${d?` <span class="dim" style="font-size:11.5px">— ${d}</span>`:''}</label>`;
   return `<div class="card"><div class="card-h"><div><h3>🎭 تحس بفلوسك</h3><p>حاجات صغيرة بتخليك تحس بقيمة الفلوس قبل ما تصرفها</p></div></div>
-  ${sw('lens','🏠 عدسة بلدك','جنب أي مصروف بعملة تانية: قيمته بعملة بلدك وتجيب إيه هناك')}${f.lens?`<div class="fg" style="margin:4px 0 8px"><label>بلدك (عملة العدسة)</label><select onchange="setFeel('home',this.value)">${curOptions(lensCur()||DB.settings.base)}</select></div>`:''}
+  ${sw('lens','🏠 عدسة بلدك','جنب أي مصروف بعملة تانية: قيمته بعملة بلدك وتجيب إيه هناك')}${f.lens?`<div class="fg" style="margin:4px 0 8px"><label>بلدك (عملة العدسة)</label><select style="width:100%;max-width:100%;min-width:0" onchange="setFeel('home',this.value)">${curOptions(lensCur()||DB.settings.base)}</select></div>`:''}
   ${f.lens?`<div class="fbk">${f.basket.map((x,i)=>`<div><input value="${esc(x.n)}" onchange="feelBasket(${i},'n',this.value)"><input type="number" value="${esc(x.p)}" onchange="feelBasket(${i},'p',+this.value)"><span class="dim">${CUR[lensCur()]||''}</span><button class="lnk neg" onclick="feelBasket(${i},'del')">✕</button></div>`).join('')}<button class="lnk" onclick="feelBasket(-1,'add')">＋ حاجة</button><div class="dim" style="font-size:11px">أسعار تقريبية — عدّلها على حسب أسعار النهارده</div></div>`:''}
   ${sw('hours','⏱️ بساعات الشغل','أي سعر يتحوّل لوقت من شغلك')}${f.hours?(salNet(s)?`<div class="row2" style="margin:0 0 8px"><div class="fg"><label>ساعات الشغل في اليوم</label><input type="number" value="${f.hpd}" onchange="setFeel('hpd',+this.value||8)"></div><div class="fg"><label>أيام الشغل في الشهر</label><input type="number" value="${f.dpm}" onchange="setFeel('dpm',+this.value||22)"></div></div>`:'<div class="hint" style="margin-bottom:8px">ضبط الراتب الأول (فوق) علشان أحسب قيمة ساعتك</div>'):''}
   ${sw('mood','😊 مصاريف الندم','تقيّم مصاريفك وأقولك إيه اللي بتندم عليه')}
