@@ -1,7 +1,7 @@
 {
   "name": "محفظتي Pro",
   "short_name": "محفظتي",
-  "description": "إدارة فلوسك في السعودية ومصر",
+  "description": "إدارة فلوسك في أي دولة — حسابات، تحويلات، أقساط، سلف ومستندات",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -1,0 +1,27 @@
+name: push-notifications
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install
+        working-directory: scripts
+        run: npm install --no-audit --no-fund
+      - name: Send due notifications
+        run: node scripts/push-sender.mjs
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SA }}
+          VAPID_PUBLIC: ${{ secrets.VAPID_PUBLIC }}
+          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          DB_URL: https://my-financial-system-7a929-default-rtdb.europe-west1.firebasedatabase.app

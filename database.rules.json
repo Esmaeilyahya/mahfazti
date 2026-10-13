@@ -1,0 +1,33 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "admins": {
+      "$uid": { ".read": "auth != null && auth.uid === $uid" }
+    },
+    "licenses": {
+      ".read": "auth != null && root.child('admins/' + auth.uid).val() === true",
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && (root.child('admins/' + auth.uid).val() === true || (data.exists() && !data.child('uid').exists() && newData.child('uid').val() === auth.uid && newData.child('created').val() === data.child('created').val() && newData.child('days').val() === data.child('days').val()))"
+      }
+    },
+    "leads": {
+      ".read": "auth != null && root.child('admins/' + auth.uid).val() === true",
+      "$id": {
+        ".write": "(auth != null && root.child('admins/' + auth.uid).val() === true) || (!data.exists() && newData.exists())",
+        ".validate": "!newData.exists() || (newData.hasChildren(['name','phone','at']) && newData.child('name').isString() && newData.child('name').val().length > 1 && newData.child('name').val().length < 80 && newData.child('phone').isString() && newData.child('phone').val().length > 5 && newData.child('phone').val().length < 30 && newData.child('at').isNumber() && (!newData.child('msg').exists() || (newData.child('msg').isString() && newData.child('msg').val().length < 500)) && (!newData.child('country').exists() || (newData.child('country').isString() && newData.child('country').val().length < 60)) && (!newData.child('email').exists() || (newData.child('email').isString() && newData.child('email').val().length < 120)))"
+      }
+    },
+    "push": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}

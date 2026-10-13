@@ -1,5 +1,5 @@
 /* محفظتي Pro — offline support + share target */
-const V='mhf-v14';
+const V='mhf-v15';
 const SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V&&k!=='mhf-share').map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
@@ -16,3 +16,9 @@ self.addEventListener('fetch',e=>{const r=e.request,u=new URL(r.url);
   if(CDN.test(r.url)){
     e.respondWith(caches.match(r).then(m=>{const net=fetch(r).then(res=>{if(res.ok||res.type==='opaque'){const cp=res.clone();caches.open(V).then(c=>c.put(r,cp))}return res}).catch(()=>m);return m||net}))}
 });
+
+/* web push */
+self.addEventListener('push',e=>{let d={};try{d=e.data?e.data.json():{}}catch(_){d={body:e.data&&e.data.text()}}
+  e.waitUntil(self.registration.showNotification(d.title||'محفظتي Pro',{body:d.body||'',icon:'icon-192.png',badge:'icon-192.png',dir:'rtl',lang:'ar',tag:d.tag||d.id||'mhf',renotify:false,data:{url:d.url||'./'}}))});
+self.addEventListener('notificationclick',e=>{e.notification.close();const url=new URL((e.notification.data&&e.notification.data.url)||'./',self.registration.scope).href;
+  e.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(ws=>{for(const w of ws){if(w.url.startsWith(self.registration.scope)&&'focus' in w){if(w.navigate)w.navigate(url).catch(()=>{});return w.focus()}}return clients.openWindow(url)}))});
