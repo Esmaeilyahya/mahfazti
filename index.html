@@ -2008,7 +2008,7 @@ function pwaInit(){if(!fbMode()||!('serviceWorker' in navigator)||location.proto
   navigator.serviceWorker.register('sw.js').then(reg=>{reg.update().catch(()=>{});const had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had)swUpdated()});setInterval(()=>reg.update().catch(()=>{}),30*60e3)}).catch(e=>console.warn('sw',e));
   addEventListener('beforeinstallprompt',e=>{e.preventDefault();INSTALL_EVT=e;if($('#app').style.display==='block'&&VIEW==='set')render()})}
 function swUpdated(){const t=$('#toast');t.innerHTML='🔄 نزلت نسخة جديدة من محفظتي <button class="lnk" style="margin-inline-start:10px;font-weight:800;color:var(--gold)" onclick="location.reload()">حدّث دلوقتي</button>';t.className='on act';clearTimeout(t._t)}
-const APP_V='2026.10.13-b';
+const APP_V='2026.10.14-a';
 const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
 async function installApp(){if(INSTALL_EVT){INSTALL_EVT.prompt();const r=await INSTALL_EVT.userChoice;INSTALL_EVT=null;if(r.outcome==='accepted')toast('📲 اتثبت التطبيق');render();return}
@@ -3432,11 +3432,11 @@ function realValueCard(){if(!isPro())return '';const rows=realValueData(),b=DB.s
 const PLAN_CFG={trialDays:14,cutoff:'2026-10-13',free:{accounts:3,countries:1},contact:[['🇪🇬','201114286306'],['🇸🇦','966549232185']]};
 const PRO_TOOLS=['whatif','gold','fin','payoff','map','rcpt','trips','report'];
 const PRO_FEAT={asst:'🤖 المساعد الذكي بالصوت',sms:'📩 قراءة رسائل البنك',ocr:'📸 قراءة الفواتير بالكاميرا',export:'📊 التصدير لـ Excel',accounts:'🏦 حسابات ودول من غير حدود',tools:'🧰 الأدوات المتقدمة',ret:'🏠 خطة الرجوع والقيمة الحقيقية'};
-const PL={admin:false,lic:null,checked:false};
+const OWNER_UID='qTWBiwwSSVeCEbQOVnSZJxlGqZ63';const PL={admin:false,lic:null,checked:false,owner:false,adminErr:null};
 function planEnsure(){const st=DB.settings;if(!st.plan||typeof st.plan!=='object')st.plan={};const p=st.plan;
   if(!p.legacy&&(DB.accounts.some(a=>!a.created||a.created<PLAN_CFG.cutoff)||DB.tx.some(t=>t.created&&t.created<PLAN_CFG.cutoff)))p.legacy=true;
   if(!p.trial&&DB.accounts.length)p.trial=today();return p}
-function planInfo(){const p=planEnsure();if(PL.admin)return{pro:true,src:'admin',label:'👑 المالك'};
+function planInfo(){const p=planEnsure();if(PL.admin||PL.owner)return{pro:true,src:'admin',label:'👑 المالك'};
   if(PL.lic&&PL.lic.uid&&FB&&FB.user&&PL.lic.uid===FB.user.uid){const days=+PL.lic.days||0,until=days?addDays((PL.lic.at||'').slice(0,10)||today(),days):null;if(!until||until>=today())return{pro:true,src:'license',until,label:until?`⭐ Pro لحد ${dlabel(until)}`:'⭐ Pro مدى الحياة'}}
   if(p.legacy)return{pro:true,src:'legacy',label:'⭐ Pro (مستخدم قديم)'};
   if(p.trial){const left=PLAN_CFG.trialDays-daysBetween(p.trial,today());if(left>0)return{pro:true,src:'trial',left,label:`🎁 تجربة Pro — فاضل ${left} يوم`}}
@@ -3444,7 +3444,7 @@ function planInfo(){const p=planEnsure();if(PL.admin)return{pro:true,src:'admin'
   return{pro:false,src:'free',label:'النسخة المجانية'}}
 const isPro=()=>planInfo().pro;
 function needPro(f){if(isPro())return true;openPro(f);return false}
-async function planCloudCheck(){if(!FB||!FB.user||!FB.db)return;try{const uid=FB.user.uid;PL.admin=!!(await FB.db.ref('admins/'+uid).once('value')).val();
+async function planCloudCheck(){if(!FB||!FB.user||!FB.db)return;PL.owner=FB.user.uid===OWNER_UID;try{const uid=FB.user.uid;let av=null;try{av=(await FB.db.ref('admins/'+uid).once('value')).val();PL.adminErr=av===true?null:av==null?'missing':'type'}catch(e){PL.adminErr='perm'}PL.admin=av===true||av==='true';if(PL.adminErr&&av==='true')PL.adminErr='type';
   const code=(DB.settings.plan||{}).code;if(code){const v=(await FB.db.ref('licenses/'+code).once('value')).val();PL.lic=v&&v.uid===uid?Object.assign({code},v):null}PL.checked=true;if(VIEW==='set'||VIEW==='dash')render()}catch(e){console.warn('plan',e)}}
 const waLink=(n,t)=>`https://wa.me/${n}?text=${encodeURIComponent(t)}`;
 function openPro(f){const pi=planInfo(),msg=`أهلاً، عايز أفعّل محفظتي Pro${FB&&FB.user&&FB.user.email?' — حسابي: '+FB.user.email:''}`;
@@ -3470,9 +3470,12 @@ async function admLoad(){if(!PL.admin||!FB)return;try{ADM.lics=(await FB.db.ref(
 async function admGen(){const n=Math.min(50,+($('#admN')||{}).value||1),days=+($('#admD')||{}).value||0,note=(($('#admNote')||{}).value||'').trim().slice(0,80),out=[];
   try{for(let i=0;i<n;i++){const c=genCode();await FB.db.ref('licenses/'+c).set({created:new Date().toISOString(),days,note,by:FB.user.uid});out.push(c)}copyText(out.join('\n'));toast(`✅ اتعمل ${n} كود واتنسخوا`);await admLoad()}catch(e){toast('❌ مقدرتش أعمل الأكواد — راجع قواعد Firebase',1)}}
 async function admDelLead(id){if(!await ask('حذف الطلب ده؟',{danger:1,ok:'حذف'}))return;await FB.db.ref('leads/'+id).remove();await admLoad()}
-function adminCard(){if(!PL.admin)return '';if(!ADM.lics){setTimeout(admLoad,50);return `<div class="card"><h3>👑 لوحة المالك</h3><p class="dim">⏳ بيحمّل…</p></div>`}
+function adminCard(){if(!PL.admin&&!PL.owner)return '';if(PL.adminErr&&PL.adminErr!=='type'){const uid=FB&&FB.user?FB.user.uid:'';return `<div class="card adm"><div class="card-h"><div><h3>👑 لوحة المالك</h3><p>فاضل خطوة في Firebase علشان اللوحة تشتغل</p></div><button class="lnk" onclick="planCloudCheck()">🔄 اتأكد تاني</button></div>
+  ${PL.adminErr==='perm'?`<div class="hint">⚠️ قواعد قاعدة البيانات الجديدة لسه متنشرتش. افتح Firebase ← Realtime Database ← <b>Rules</b>، والزق محتوى <a href="database.rules.json" target="_blank" rel="noopener" style="text-decoration:underline">database.rules.json</a> ودوس <b>Publish</b>.</div>`
+   :`<div class="hint">⚠️ القواعد اتنشرت ✓ بس لسه مفيش تسجيل إنك المالك. في Firebase ← Realtime Database ← <b>Data</b>: دوس ➕ جنب أول سطر، اكتب Key = <b class="notr">admins</b> ودوس ➕ تاني جواه، وKey = <b class="notr" style="direction:ltr;unicode-bidi:isolate">${esc(uid)}</b> وValue = <b class="notr">true</b> ← Add.</div>`}
+  <div class="acts" style="margin-top:8px"><button class="ibtn" onclick="copyText('${esc(uid)}')">📋 انسخ الـ UID</button><a class="ibtn" target="_blank" rel="noopener" href="https://console.firebase.google.com/project/my-financial-system-7a929/database/my-financial-system-7a929-default-rtdb/${PL.adminErr==='perm'?'rules':'data'}">↗️ افتح Firebase</a></div></div>`}if(!PL.admin)return '';if(!ADM.lics){setTimeout(admLoad,50);return `<div class="card"><h3>👑 لوحة المالك</h3><p class="dim">⏳ بيحمّل…</p></div>`}
   const lics=Object.entries(ADM.lics).sort((a,b)=>(b[1].created||'').localeCompare(a[1].created||'')),used=lics.filter(([,v])=>v.uid).length,leads=Object.entries(ADM.leads).sort((a,b)=>(b[1].at||0)-(a[1].at||0));
-  return `<div class="card adm"><div class="card-h"><div><h3>👑 لوحة المالك</h3><p>${lics.length} كود · ${used} متفعّل · ${leads.length} طلب تجربة</p></div><button class="lnk" onclick="admLoad()">🔄 تحديث</button></div>
+  return `<div class="card adm">${PL.adminErr==='type'?'<div class="hint" style="margin-bottom:8px">⚠️ في Firebase ← Data: قيمة admins لازم تبقى <b>true</b> (boolean) مش "true" كنص — عدّلها علشان الأكواد والطلبات تشتغل.</div>':''}<div class="card-h"><div><h3>👑 لوحة المالك</h3><p>${lics.length} كود · ${used} متفعّل · ${leads.length} طلب تجربة</p></div><button class="lnk" onclick="admLoad()">🔄 تحديث</button></div>
   <b style="font-size:13px">🔑 أكواد تفعيل جديدة</b><div class="row3" style="margin-top:6px"><div class="fg"><label>العدد</label><input id="admN" type="number" min="1" max="50" value="1"></div><div class="fg"><label>المدة</label><select id="admD"><option value="0">مدى الحياة</option><option value="30">شهر</option><option value="90">3 شهور</option><option value="365">سنة</option></select></div><div class="fg"><label>ملاحظة (اسم العميل)</label><input id="admNote" placeholder="اختياري"></div></div>
   <button class="ibtn gold" onclick="admGen()">➕ اعمل الأكواد وانسخها</button>
   <div class="sec"></div><b style="font-size:13px">🔔 مفاتيح الإشعارات (مرة واحدة بس)</b><div class="hint" style="margin:6px 0">${window.PUSH_VAPID?'✅ الإشعارات متفعّلة على الموقع.':'اعمل المفاتيح هنا: العام ابعتهولي، والسري حطه في GitHub Secrets — متبعتهوش لحد.'}</div>${window.PUSH_VAPID?'':'<button class="ibtn" onclick="admVapid()">🔑 اعمل مفاتيح الإشعارات</button>'}
