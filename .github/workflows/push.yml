@@ -24,5 +24,6 @@ jobs:
           VAPID_PUBLIC: ${{ secrets.VAPID_PUBLIC }}
           VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
           STRICT: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
           DB_URL: https://my-financial-system-7a929-default-rtdb.europe-west1.firebasedatabase.app

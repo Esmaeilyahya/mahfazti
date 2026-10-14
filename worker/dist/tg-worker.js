@@ -23,7 +23,10 @@ var HELP = `\u0627\u0628\u0639\u062A\u0644\u064A \u0623\u064A \u062D\u0631\u0643
 \u2022 <code>\u062D\u0648\u0644\u062A 3000 \u0645\u0635\u0631</code> \u2014 \u062A\u062D\u0648\u064A\u0644
 \u2022 <code>\u0633\u0644\u0641\u062A \u0645\u062D\u0645\u0648\u062F 500</code> \u2014 \u0633\u0644\u0641\u0629
 \u2022 <code>\u0635\u0631\u0641\u062A \u0643\u0627\u0645 \u0627\u0644\u0646\u0647\u0627\u0631\u062F\u0647\u061F</code> \u0623\u0648 <code>\u0627\u0644\u0623\u0633\u0628\u0648\u0639</code> \u0623\u0648 <code>\u0627\u0644\u0634\u0647\u0631</code>
-\u2022 <code>\u0622\u062E\u0631</code> \u2014 \u0622\u062E\u0631 \u0627\u0644\u062D\u0631\u0643\u0627\u062A \xB7 <code>\u062A\u0631\u0627\u062C\u0639</code> \u2014 \u064A\u0644\u063A\u064A \u0622\u062E\u0631 \u0631\u0633\u0627\u0644\u0629`;
+\u2022 <code>\u0622\u062E\u0631</code> \u2014 \u0622\u062E\u0631 \u0627\u0644\u062D\u0631\u0643\u0627\u062A \xB7 <code>\u062A\u0631\u0627\u062C\u0639</code> \u2014 \u064A\u0644\u063A\u064A \u0622\u062E\u0631 \u0631\u0633\u0627\u0644\u0629
+\u2022 <code>\u062A\u0642\u0631\u064A\u0631</code> \u2014 \u0645\u0644\u0641 \u062A\u0642\u0631\u064A\u0631 \u0627\u0644\u0634\u0647\u0631 (\u0623\u0648 <code>\u062A\u0642\u0631\u064A\u0631 \u0627\u0644\u0634\u0647\u0631 \u0627\u0644\u0644\u064A \u0641\u0627\u062A</code>)
+\u2022 \u{1F4E9} \u0627\u0639\u0645\u0644 Forward \u0644\u0631\u0633\u0627\u0644\u0629 \u0627\u0644\u0628\u0646\u0643 \u0648\u0623\u0646\u0627 \u0623\u0633\u062C\u0644\u0647\u0627
+\u2022 \u{1F4F8} \u0627\u0628\u0639\u062A \u0635\u0648\u0631\u0629 \u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629 \u0648\u0627\u0644\u0645\u062D\u0641\u0638\u0629 \u062A\u0642\u0631\u0627\u0647\u0627`;
 function preview(text, core) {
   const t = normDigits(text).replace(/\s+/g, " ").trim(), n = norm(t), m = t.match(/(\d+(?:[.,]\d+)?)/);
   if (!m) return null;
@@ -128,7 +131,7 @@ async function undo(db, uid, chat, id, now) {
   if (await db.get(`tg/last/${chat}`) === id) await db.remove(`tg/last/${chat}`);
   if (cur && !cur.claim) {
     await db.remove(`users/${uid}/inbox/${id}`);
-    return `\u21A9\uFE0F \u0627\u062A\u0644\u063A\u062A \xAB${esc(String(cur.text || "").slice(0, 60))}\xBB`;
+    return cur.img ? "\u21A9\uFE0F \u0627\u062A\u0644\u063A\u062A \u0627\u0644\u0635\u0648\u0631\u0629" : `\u21A9\uFE0F \u0627\u062A\u0644\u063A\u062A \xAB${esc(String(cur.text || "").slice(0, 60))}\xBB`;
   }
   await db.set(`users/${uid}/inbox/u${rid()}`, { undo: id, at: now, chat: String(chat) });
   return "\u21A9\uFE0F \u0627\u062A\u0644\u063A\u062A \u2014 \u0647\u062A\u062A\u0634\u0627\u0644 \u0645\u0646 \u0627\u0644\u0645\u062D\u0641\u0638\u0629 \u0644\u0645\u0627 \u062A\u0641\u062A\u062D\u0647\u0627";
@@ -139,6 +142,10 @@ async function handleUpdate(u, { db, tg, now = Date.now(), log = () => {
   if (u.callback_query) {
     const q = u.callback_query, chat2 = q.message && q.message.chat && q.message.chat.id, d = String(q.data || "");
     await tg.call("answerCallbackQuery", { callback_query_id: q.id });
+    if (chat2 && d === "z") {
+      await tg.call("editMessageText", { chat_id: chat2, message_id: q.message.message_id, text: "\u{1F44F} \u064A\u0648\u0645 \u0645\u0646 \u063A\u064A\u0631 \u0645\u0635\u0627\u0631\u064A\u0641 \u2014 \u0628\u0631\u0627\u0641\u0648 \u0639\u0644\u064A\u0643!" });
+      return;
+    }
     if (!chat2 || !d.startsWith("u:")) return;
     const uid2 = await linkedUid(db, chat2);
     if (!uid2) return;
@@ -148,9 +155,9 @@ async function handleUpdate(u, { db, tg, now = Date.now(), log = () => {
   }
   const msg = u.message;
   if (!msg || !msg.chat || msg.chat.type !== "private") return;
-  const chat = msg.chat.id, raw = String(msg.text || "").trim();
-  if (!raw) return reply(chat, "\u0627\u0628\u0639\u062A\u0644\u064A \u0646\u0635 \u0628\u0633 \u2014 \u0645\u062B\u0644\u0627\u064B: <code>\u063A\u062F\u0627 45</code>");
-  const text = raw.slice(0, 200), n = norm(text), at = (+msg.date || 0) * 1e3 || now;
+  const chat = msg.chat.id, raw = String(msg.text || "").trim(), isImg = Array.isArray(msg.photo) && msg.photo.length || msg.document && /^image\//.test(msg.document.mime_type || "");
+  if (!raw && !isImg) return reply(chat, "\u0627\u0628\u0639\u062A\u0644\u064A \u0646\u0635 \u0623\u0648 \u0635\u0648\u0631\u0629 \u0641\u0627\u062A\u0648\u0631\u0629 \u2014 \u0645\u062B\u0644\u0627\u064B: <code>\u063A\u062F\u0627 45</code>");
+  const fwd = !!(msg.forward_origin || msg.forward_date || msg.forward_from || msg.forward_sender_name), sms = !!raw && (fwd || looksSMS(raw)), text = raw.slice(0, sms ? 700 : 200), n = norm(text), at = (+msg.date || 0) * 1e3 || now;
   const st = text.match(/^\/start(?:\s+([A-Z0-9]{10}))?$/);
   if (st && st[1]) {
     const L = await db.get(`tglink/${st[1]}`);
@@ -175,7 +182,31 @@ ${HELP}`);
   }
   if (/^\/undo$|^(تراجع|الغي|الغاء|امسح اخر)/.test(n)) return reply(chat, await undo(db, uid, chat, await db.get(`tg/last/${chat}`), now));
   if (/^\/last$|^(اخر|آخر|اخر الحركات)$/.test(n)) return reply(chat, await lastReport(db, uid, now));
-  if (QRX.test(n)) return reply(chat, await spendReport(db, uid, period(n), now));
+  if (isImg) {
+    const ib = await db.get(`users/${uid}/inbox`) || {};
+    if (Object.keys(ib).length >= 300) return reply(chat, "\u{1F4E5} \u0627\u0644\u0635\u0646\u062F\u0648\u0642 \u0645\u0644\u064A\u0627\u0646 \u2014 \u0627\u0641\u062A\u062D \u0627\u0644\u0645\u062D\u0641\u0638\u0629 \u0645\u0631\u0629 \u0627\u0644\u0623\u0648\u0644.");
+    const img = await photoData(tg, msg);
+    if (img === "big") return reply(chat, "\u{1F4F8} \u0627\u0644\u0635\u0648\u0631\u0629 \u0643\u0628\u064A\u0631\u0629 \u2014 \u0627\u0628\u0639\u062A\u0647\u0627 \u0643\u0635\u0648\u0631\u0629 \u0639\u0627\u062F\u064A\u0629 (\u0645\u0634 \u0645\u0644\u0641) \u0648\u0647\u064A \u0647\u062A\u062A\u0635\u063A\u0651\u0631 \u0644\u0648\u062D\u062F\u0647\u0627.");
+    if (!img) return reply(chat, "\u0645\u0642\u062F\u0631\u062A\u0634 \u0623\u0646\u0632\u0651\u0644 \u0627\u0644\u0635\u0648\u0631\u0629 \u2014 \u062C\u0631\u0651\u0628 \u062A\u0627\u0646\u064A.");
+    const id2 = "p" + rid();
+    await db.set(`users/${uid}/inbox/${id2}`, { img, caption: String(msg.caption || "").slice(0, 200), at, chat: String(chat) });
+    await db.set(`tg/last/${chat}`, id2);
+    return reply(chat, "\u{1F4F8} \u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629 \u0648\u0635\u0644\u062A \u2014 \u0627\u0641\u062A\u062D \u0627\u0644\u0645\u062D\u0641\u0638\u0629 \u0648\u0647\u062A\u0644\u0627\u0642\u064A\u0647\u0627 \u0645\u0633\u062A\u0646\u064A\u0627\u0643 \u062A\u0623\u0643\u062F \u0627\u0644\u0645\u0628\u0644\u063A.", { reply_markup: { inline_keyboard: [[{ text: "\u21A9\uFE0F \u062A\u0631\u0627\u062C\u0639", callback_data: "u:" + id2 }]] } });
+  }
+  if (!sms && /^\/report$|^تقرير/.test(n)) {
+    const tz = await db.get(`push/${uid}/cfg/tz`) || "Asia/Riyadh", cm = localDay(now, tz).slice(0, 7);
+    await sendReport(db, tg, uid, chat, /(اللي فات|الماضي|السابق)/.test(n) ? prevM(cm) : cm);
+    return;
+  }
+  if (!sms && QRX.test(n)) return reply(chat, await spendReport(db, uid, period(n), now));
+  if (sms) {
+    const ib = await db.get(`users/${uid}/inbox`) || {};
+    if (Object.keys(ib).length >= 300) return reply(chat, "\u{1F4E5} \u0627\u0644\u0635\u0646\u062F\u0648\u0642 \u0645\u0644\u064A\u0627\u0646 \u2014 \u0627\u0641\u062A\u062D \u0627\u0644\u0645\u062D\u0641\u0638\u0629 \u0645\u0631\u0629 \u0627\u0644\u0623\u0648\u0644.");
+    const id2 = "s" + rid();
+    await db.set(`users/${uid}/inbox/${id2}`, { text, sms: true, at, chat: String(chat) });
+    await db.set(`tg/last/${chat}`, id2);
+    return reply(chat, "\u{1F4E9} \u0631\u0633\u0627\u0644\u0629 \u0627\u0644\u0628\u0646\u0643 \u0648\u0635\u0644\u062A \u2014 \u0627\u0644\u0645\u062D\u0641\u0638\u0629 \u0647\u062A\u0642\u0631\u0627\u0647\u0627 \u0648\u062A\u0633\u062C\u0644\u0647\u0627 \u0623\u0648\u0644 \u0645\u0627 \u062A\u0641\u062A\u062D\u0647\u0627.", { reply_markup: { inline_keyboard: [[{ text: "\u21A9\uFE0F \u062A\u0631\u0627\u062C\u0639", callback_data: "u:" + id2 }]] } });
+  }
   const inbox = await db.get(`users/${uid}/inbox`) || {};
   if (Object.keys(inbox).length >= 300) return reply(chat, "\u{1F4E5} \u0627\u0644\u0635\u0646\u062F\u0648\u0642 \u0645\u0644\u064A\u0627\u0646 \u2014 \u0627\u0641\u062A\u062D \u0627\u0644\u0645\u062D\u0641\u0638\u0629 \u0645\u0631\u0629 \u0639\u0644\u0634\u0627\u0646 \u062A\u062A\u0633\u062C\u0644 \u0627\u0644\u0631\u0633\u0627\u064A\u0644 \u0627\u0644\u0644\u064A \u0641\u0627\u062A\u062A.");
   const core = parseJ(await db.get(`users/${uid}/data/core`)), p = preview(text, core);
@@ -186,6 +217,144 @@ ${HELP}`);
   return reply(chat, `${esc(previewLine(p))}
 <i>\u0647\u062A\u0638\u0647\u0631 \u0641\u064A \u0627\u0644\u0645\u062D\u0641\u0638\u0629 \u0623\u0648\u0644 \u0645\u0627 \u062A\u0641\u062A\u062D\u0647\u0627</i>`, { reply_markup: { inline_keyboard: [[{ text: "\u21A9\uFE0F \u062A\u0631\u0627\u062C\u0639", callback_data: "u:" + id }]] } });
 }
+var MO = ["\u064A\u0646\u0627\u064A\u0631", "\u0641\u0628\u0631\u0627\u064A\u0631", "\u0645\u0627\u0631\u0633", "\u0623\u0628\u0631\u064A\u0644", "\u0645\u0627\u064A\u0648", "\u064A\u0648\u0646\u064A\u0648", "\u064A\u0648\u0644\u064A\u0648", "\u0623\u063A\u0633\u0637\u0633", "\u0633\u0628\u062A\u0645\u0628\u0631", "\u0623\u0643\u062A\u0648\u0628\u0631", "\u0646\u0648\u0641\u0645\u0628\u0631", "\u062F\u064A\u0633\u0645\u0628\u0631"];
+var CN = { SA: ["\u{1F1F8}\u{1F1E6}", "\u0627\u0644\u0633\u0639\u0648\u062F\u064A\u0629"], EG: ["\u{1F1EA}\u{1F1EC}", "\u0645\u0635\u0631"], AE: ["\u{1F1E6}\u{1F1EA}", "\u0627\u0644\u0625\u0645\u0627\u0631\u0627\u062A"], KW: ["\u{1F1F0}\u{1F1FC}", "\u0627\u0644\u0643\u0648\u064A\u062A"], QA: ["\u{1F1F6}\u{1F1E6}", "\u0642\u0637\u0631"], BH: ["\u{1F1E7}\u{1F1ED}", "\u0627\u0644\u0628\u062D\u0631\u064A\u0646"], OM: ["\u{1F1F4}\u{1F1F2}", "\u0639\u0645\u0627\u0646"], JO: ["\u{1F1EF}\u{1F1F4}", "\u0627\u0644\u0623\u0631\u062F\u0646"], US: ["\u{1F1FA}\u{1F1F8}", "\u0623\u0645\u0631\u064A\u0643\u0627"], GB: ["\u{1F1EC}\u{1F1E7}", "\u0628\u0631\u064A\u0637\u0627\u0646\u064A\u0627"], TR: ["\u{1F1F9}\u{1F1F7}", "\u062A\u0631\u0643\u064A\u0627"] };
+var cName = (c) => CN[c] ? CN[c].join(" ") : c || "\u2014";
+var mLabel = (m) => `${MO[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}`;
+var prevM = (m) => {
+  const [y, mo] = m.split("-").map(Number);
+  return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, "0")}`;
+};
+var DTA = { lend: -1, borrow: 1, collect: 1, repay: -1 };
+function deltaOf(t, aid) {
+  if (t.kind === "income" && t.acc === aid) return +t.amount || 0;
+  if (t.kind === "expense" && t.acc === aid) return -(+t.amount || 0);
+  if (t.kind === "transfer") {
+    let d = 0;
+    if (t.acc === aid) d -= (+t.amount || 0) + (+t.fee || 0) + (+t.tax || 0);
+    if (t.to === aid) d += +t.toAmount || 0;
+    return d;
+  }
+  if (t.kind === "debt" && t.acc === aid) return (DTA[t.dt] || 0) * (+t.amount || 0);
+  return 0;
+}
+function reportData(map, m) {
+  const core = parseJ(map && map.core) || {}, accs = (core.accounts || []).filter((a) => a), st = core.settings || {}, rates = st.rates || {}, base = st.base || "SAR";
+  const conv = (v, f, t) => f === t || !v ? v : v * (+rates[f] || 1) / (+rates[t] || 1), cats = {};
+  (core.cats || []).forEach((c) => {
+    if (c && c.id) cats[c.id] = `${c.icon || ""} ${c.name || ""}`.trim();
+  });
+  let tx = [];
+  for (const k in map || {}) if (k.startsWith("tx_") && k.slice(3) <= m) {
+    const v = parseJ(map[k]);
+    if (v && Array.isArray(v.items)) tx = tx.concat(v.items);
+  }
+  const end = m + "-31", A = (id) => accs.find((a) => a.id === id), G = {}, g = (c, cur) => {
+    const k = c + "|" + cur;
+    return G[k] || (G[k] = { c, cur, inc: 0, exp: 0, fee: 0, cats: {}, accs: [], n: 0, tin: 0, tout: 0 });
+  };
+  accs.filter((a) => !a.archived).forEach((a) => {
+    let b = +a.initial || 0;
+    for (const t of tx) if (t && t.date <= end) b += deltaOf(t, a.id);
+    g(a.country, a.currency).accs.push({ name: a.name, bal: b });
+  });
+  const trs = [];
+  for (const t of tx) {
+    if (!t || !String(t.date || "").startsWith(m)) continue;
+    const a = A(t.acc);
+    if (!a) continue;
+    const o = g(a.country, a.currency);
+    if (t.kind === "income") {
+      o.inc += +t.amount || 0;
+      o.n++;
+    } else if (t.kind === "expense" && !(t.scope === "company" && (t.rec || t.cust))) {
+      o.exp += +t.amount || 0;
+      o.n++;
+      const k = cats[t.cat] || "\u{1F4E6} \u0623\u062E\u0631\u0649";
+      o.cats[k] = (o.cats[k] || 0) + (+t.amount || 0);
+    } else if (t.kind === "transfer") {
+      const b = A(t.to), f = (+t.fee || 0) + (+t.tax || 0);
+      if (f) {
+        o.exp += f;
+        o.fee += f;
+      }
+      o.tout += +t.amount || 0;
+      if (b) {
+        g(b.country, b.currency).tin += +t.toAmount || 0;
+        if (b.country !== a.country) trs.push({ from: a, to: b, amt: +t.amount || 0, to_amt: +t.toAmount || 0, date: t.date });
+      }
+    }
+  }
+  const groups = Object.values(G).filter((x) => x.accs.length || x.inc || x.exp).sort((a, b) => conv(b.exp, b.cur, base) - conv(a.exp, a.cur, base));
+  const tot = { inc: 0, exp: 0, bal: 0 };
+  groups.forEach((x) => {
+    tot.inc += conv(x.inc, x.cur, base);
+    tot.exp += conv(x.exp, x.cur, base);
+    tot.bal += conv(x.accs.reduce((s, a) => s + a.bal, 0), x.cur, base);
+  });
+  return { m, name: st.name || "", base, groups, tot, trs };
+}
+function reportHTML(d) {
+  const F = (v, c) => `${fmt(Math.round((+v || 0) * 100) / 100)} <small>${esc(sym(c))}</small>`;
+  const card = (x) => {
+    const net = x.inc - x.exp, top = Object.entries(x.cats).sort((a, b) => b[1] - a[1]).slice(0, 7), bal = x.accs.reduce((s, a) => s + a.bal, 0);
+    return `<section><h2>${esc(cName(x.c))} <span class="cur">${esc(x.cur)}</span></h2><div class="k"><div><span>\u0627\u0644\u0648\u0627\u0631\u062F</span><b class="p">${F(x.inc, x.cur)}</b></div><div><span>\u0627\u0644\u0645\u0635\u0627\u0631\u064A\u0641</span><b class="n">${F(x.exp, x.cur)}</b></div><div><span>\u0627\u0644\u0635\u0627\u0641\u064A</span><b class="${net >= 0 ? "p" : "n"}">${F(net, x.cur)}</b></div><div><span>\u0627\u0644\u0631\u0635\u064A\u062F \u0622\u062E\u0631 \u0627\u0644\u0634\u0647\u0631</span><b>${F(bal, x.cur)}</b></div></div>
+    ${top.length ? `<h3>\u0627\u0644\u0645\u0635\u0627\u0631\u064A\u0641 \u062D\u0633\u0628 \u0627\u0644\u062A\u0635\u0646\u064A\u0641</h3><table>${top.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="r">${F(v, x.cur)}</td><td class="r s">${x.exp ? Math.round(v / x.exp * 100) : 0}%</td></tr>`).join("")}</table>` : ""}
+    ${x.accs.length ? `<h3>\u0627\u0644\u062D\u0633\u0627\u0628\u0627\u062A</h3><table>${x.accs.map((a) => `<tr><td>${esc(a.name)}</td><td class="r">${F(a.bal, x.cur)}</td></tr>`).join("")}</table>` : ""}${x.fee ? `<p class="s">\u0645\u0646\u0647\u0627 \u0631\u0633\u0648\u0645 \u062A\u062D\u0648\u064A\u0644 ${F(x.fee, x.cur)}</p>` : ""}</section>`;
+  };
+  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>\u062A\u0642\u0631\u064A\u0631 ${esc(mLabel(d.m))} \u2014 \u0645\u062D\u0641\u0638\u062A\u064A Pro</title>
+<style>body{margin:0;background:#f4f6fb;color:#14213d;font-family:"Segoe UI",Tahoma,"Noto Naskh Arabic",sans-serif;line-height:1.6}main{max-width:860px;margin:auto;padding:20px}header{background:linear-gradient(135deg,#1e3a8a,#0f172a);color:#fff;border-radius:18px;padding:22px 24px;margin-bottom:16px}header h1{margin:0;font-size:24px}header p{margin:4px 0 0;opacity:.8}
+.tot{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}.tot div{background:rgba(255,255,255,.12);border-radius:12px;padding:10px 12px}.tot span{display:block;font-size:12px;opacity:.8}.tot b{font-size:18px}
+section{background:#fff;border-radius:16px;padding:18px 20px;margin-bottom:14px;box-shadow:0 2px 10px rgba(15,23,42,.06)}h2{margin:0 0 12px;font-size:19px}.cur{font-size:12px;background:#eef2ff;color:#3730a3;border-radius:8px;padding:2px 8px;vertical-align:middle}h3{font-size:14px;margin:16px 0 6px;color:#475569}
+.k{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}.k div{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px}.k span{display:block;font-size:12px;color:#64748b}.k b{font-size:17px}.p{color:#047857}.n{color:#b91c1c}
+table{width:100%;border-collapse:collapse;font-size:14px}td{padding:7px 4px;border-bottom:1px solid #eef2f7}.r{text-align:left;white-space:nowrap}.s{color:#64748b;font-size:12.5px}small{color:#64748b;font-weight:500}
+.pr{display:block;margin:16px auto 0;background:#1e3a8a;color:#fff;border:0;border-radius:12px;padding:10px 22px;font:inherit;cursor:pointer}footer{text-align:center;color:#94a3b8;font-size:12px;margin:18px 0}@media print{.pr{display:none}body{background:#fff}section{box-shadow:none;border:1px solid #e2e8f0}}</style></head><body><main>
+<header><h1>\u{1F4C4} \u062A\u0642\u0631\u064A\u0631 ${esc(mLabel(d.m))}</h1><p>${d.name ? esc(d.name) + " \xB7 " : ""}\u0643\u0644 \u062F\u0648\u0644\u0629 \u0628\u0639\u0645\u0644\u062A\u0647\u0627\u060C \u0648\u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A \u0628\u0627\u0644\u0640${esc(sym(d.base))}</p>
+<div class="tot"><div><span>\u0627\u0644\u0648\u0627\u0631\u062F (\u0645\u062F\u0645\u0648\u062C)</span><b>${F(d.tot.inc, d.base)}</b></div><div><span>\u0627\u0644\u0645\u0635\u0627\u0631\u064A\u0641 (\u0645\u062F\u0645\u0648\u062C)</span><b>${F(d.tot.exp, d.base)}</b></div><div><span>\u0627\u0644\u0635\u0627\u0641\u064A</span><b>${F(d.tot.inc - d.tot.exp, d.base)}</b></div><div><span>\u0627\u0644\u0623\u0631\u0635\u062F\u0629 \u0622\u062E\u0631 \u0627\u0644\u0634\u0647\u0631</span><b>${F(d.tot.bal, d.base)}</b></div></div></header>
+${d.groups.map(card).join("")}
+${d.trs.length ? `<section><h2>\u2194\uFE0F \u0627\u0644\u062A\u062D\u0648\u064A\u0644\u0627\u062A \u0628\u064A\u0646 \u0627\u0644\u062F\u0648\u0644</h2><table>${d.trs.map((t) => `<tr><td>${esc(t.date.slice(8))}/${esc(t.date.slice(5, 7))}</td><td>${esc(t.from.name)} \u2190 ${esc(t.to.name)}</td><td class="r">${F(t.amt, t.from.currency)}</td><td class="r">${F(t.to_amt, t.to.currency)}</td></tr>`).join("")}</table></section>` : ""}
+<button class="pr" onclick="print()">\u{1F5A8}\uFE0F \u0627\u0637\u0628\u0639\u0647 \u0623\u0648 \u0627\u062D\u0641\u0638\u0647 PDF</button><footer>\u0645\u062D\u0641\u0638\u062A\u064A Pro \xB7 \u0627\u062A\u0639\u0645\u0644 ${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}</footer></main></body></html>`;
+}
+function reportText(d) {
+  const lines = d.groups.filter((x) => x.inc || x.exp).map((x) => `${CN[x.c] ? CN[x.c][0] : "\u2022"} ${esc(CN[x.c] ? CN[x.c][1] : x.c)}: \u0635\u0631\u0641\u062A <b>${fmt(Math.round(x.exp))} ${esc(sym(x.cur))}</b> \xB7 \u062F\u062E\u0644 ${fmt(Math.round(x.inc))}`);
+  return `\u{1F4C4} <b>\u062A\u0642\u0631\u064A\u0631 ${esc(mLabel(d.m))}</b>
+${lines.join("\n") || "\u0645\u0641\u064A\u0634 \u062D\u0631\u0643\u0627\u062A \u0627\u0644\u0634\u0647\u0631 \u062F\u0647"}
+
+\u{1F4B0} \u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A: \u0635\u0631\u0641\u062A ${fmt(Math.round(d.tot.exp))} ${esc(sym(d.base))} \u0645\u0646 ${fmt(Math.round(d.tot.inc))}`;
+}
+async function sendReport(db, tg, uid, chat, m) {
+  const map = await db.get(`users/${uid}/data`) || {}, d = reportData(map, m);
+  await tg.call("sendMessage", { chat_id: chat, text: reportText(d), parse_mode: "HTML" });
+  if (tg.upload) await tg.upload("sendDocument", { chat_id: String(chat), caption: "\u0627\u0641\u062A\u062D \u0627\u0644\u0645\u0644\u0641 \u2014 \u0648\u0644\u0648 \u0639\u0627\u064A\u0632\u0647 PDF \u062F\u0648\u0633 \xAB\u0627\u0637\u0628\u0639\u0647 \u0623\u0648 \u0627\u062D\u0641\u0638\u0647 PDF\xBB" }, { field: "document", name: `\u062A\u0642\u0631\u064A\u0631-${m}.html`, type: "text/html", data: reportHTML(d) });
+  return d;
+}
+var toB64 = (u8) => {
+  if (typeof Buffer !== "undefined") return Buffer.from(u8).toString("base64");
+  let s = "";
+  for (let i = 0; i < u8.length; i += 32768) s += String.fromCharCode.apply(null, u8.subarray(i, i + 32768));
+  return btoa(s);
+};
+async function photoData(tg, msg) {
+  let fid = null, mime = "image/jpeg";
+  if (Array.isArray(msg.photo) && msg.photo.length) {
+    const ok = msg.photo.filter((p) => (p.width || 0) <= 1600);
+    fid = (ok.length ? ok[ok.length - 1] : msg.photo[0]).file_id;
+  } else if (msg.document && /^image\//.test(msg.document.mime_type || "")) {
+    fid = msg.document.file_id;
+    mime = msg.document.mime_type;
+  }
+  if (!fid || !tg.file) return null;
+  const f = await tg.call("getFile", { file_id: fid });
+  if (!f || !f.ok || !f.result || !f.result.file_path) return null;
+  if ((+f.result.file_size || 0) > 18e5) return "big";
+  const buf = await tg.file(f.result.file_path);
+  if (!buf || buf.byteLength > 18e5) return "big";
+  return `data:${mime};base64,${toB64(new Uint8Array(buf))}`;
+}
+var looksSMS = (t) => {
+  t = String(t || "");
+  return t.length > 35 && /\d/.test(t) && /(شراء|purchase|مدى|mada|debited|credited|خصم|إيداع|ايداع|حوال|pos\b|بطاق|card|رصيد|balance|سحب|withdraw|instapay|انستاباي|إنستاباي|تحويل وارد|تم تحويل)/i.test(t);
+};
 
 // ../../../home/claude/mahfazti/worker/tg-worker.mjs
 var b64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -213,16 +382,30 @@ function restDb(env) {
   };
   return { get: (p) => req(p, "GET"), set: (p, v) => req(p, "PUT", v), update: (p, v) => req(p, "PATCH", v), remove: (p) => req(p, "DELETE") };
 }
-var tgApi = (env) => ({ call: async (m, params) => {
-  const r = await fetch(`https://api.telegram.org/bot${env.TG_TOKEN}/${m}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(params || {}) });
-  return r.json();
-} });
+var tgApi = (env) => ({
+  call: async (m, params) => {
+    const r = await fetch(`https://api.telegram.org/bot${env.TG_TOKEN}/${m}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(params || {}) });
+    return r.json();
+  },
+  file: async (path) => {
+    const r = await fetch(`https://api.telegram.org/file/bot${env.TG_TOKEN}/${path}`);
+    return r.ok ? r.arrayBuffer() : null;
+  },
+  upload: async (m, fields, f) => {
+    const fd = new FormData();
+    for (const k in fields) fd.append(k, fields[k]);
+    fd.append(f.field, new Blob([f.data], { type: f.type }), f.name);
+    const r = await fetch(`https://api.telegram.org/bot${env.TG_TOKEN}/${m}`, { method: "POST", body: fd });
+    return r.json();
+  }
+});
 var tg_worker_default = { async fetch(req, env, ctx) {
   const url = new URL(req.url);
   if (req.method === "GET" && url.pathname === "/setup") {
     if (url.searchParams.get("key") !== env.TG_SECRET) return new Response("forbidden", { status: 403 });
     const out = {};
     try {
+      await tgApi(env).call("setMyCommands", { commands: [{ command: "help", description: "\u0627\u0644\u0623\u0645\u062B\u0644\u0629" }, { command: "today", description: "\u0635\u0631\u0641\u062A \u0643\u0627\u0645 \u0627\u0644\u0646\u0647\u0627\u0631\u062F\u0647" }, { command: "month", description: "\u0635\u0631\u0641\u062A \u0643\u0627\u0645 \u0627\u0644\u0634\u0647\u0631 \u062F\u0647" }, { command: "report", description: "\u0645\u0644\u0641 \u062A\u0642\u0631\u064A\u0631 \u0627\u0644\u0634\u0647\u0631" }, { command: "last", description: "\u0622\u062E\u0631 \u0627\u0644\u062D\u0631\u0643\u0627\u062A" }, { command: "undo", description: "\u0625\u0644\u063A\u0627\u0621 \u0622\u062E\u0631 \u0631\u0633\u0627\u0644\u0629" }] });
       out.webhook = await tgApi(env).call("setWebhook", { url: url.origin + "/tg", secret_token: env.TG_SECRET, allowed_updates: ["message", "callback_query"], drop_pending_updates: false });
       const me = await tgApi(env).call("getMe");
       out.bot = me.ok && me.result ? me.result.username : null;

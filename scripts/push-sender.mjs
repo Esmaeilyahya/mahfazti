@@ -7,4 +7,7 @@ const admin=(await import('firebase-admin')).default,webpush=(await import('web-
 admin.initializeApp({credential:admin.credential.cert(SA),databaseURL:DB_URL});
 webpush.setVapidDetails(VAPID_SUBJECT||'mailto:owner@mahfazti.app',VAPID_PUBLIC,VAPID_PRIVATE);
 try{await run({db:admin.database(),webpush})}catch(e){console.error(e);process.exitCode=1}
+if(process.env.TG_TOKEN){try{const {tick}=await import('./tg-core.mjs'),{makeTg}=await import('./tg-node.mjs'),rdb=admin.database();
+  const db={get:async p=>(await rdb.ref(p).once('value')).val(),set:(p,v)=>rdb.ref(p).set(v),update:(p,v)=>rdb.ref(p).update(v),remove:p=>rdb.ref(p).remove()};
+  await tick({db,tg:makeTg(process.env.TG_TOKEN),log:console.log})}catch(e){console.error('tg tick',e);process.exitCode=1}}
 await admin.app().delete();
