@@ -160,10 +160,14 @@ function localParts(now,tz){try{const p=new Intl.DateTimeFormat('en-CA',{timeZon
 export async function tick({db,tg,now=Date.now(),log=()=>{}}){const chats=await db.get('tg/chats')||{};let sent=0;
   for(const [chat,mp] of Object.entries(chats)){const uid=mp&&mp.uid;if(!uid)continue;
     try{const u=await db.get(`users/${uid}/tg`);if(!u||String(u.chat)!==String(chat))continue;
-      const p=Object.assign({night:true,nh:22,report:true},await db.get(`users/${uid}/tgprefs`)||{}),tz=p.tz||(await db.get(`push/${uid}/cfg/tz`))||'Asia/Riyadh',L=localParts(now,tz),st=await db.get(`tgsent/${uid}`)||{};
+      const p=Object.assign({night:true,nh:22,report:true,morning:true,mh:8},await db.get(`users/${uid}/tgprefs`)||{}),tz=p.tz||(await db.get(`push/${uid}/cfg/tz`))||'Asia/Riyadh',L=localParts(now,tz),st=await db.get(`tgsent/${uid}`)||{};
       if(p.night!==false&&L.h>=+p.nh&&st.n!==L.date){const items=await monthTx(db,uid,L.date.slice(0,7)),any=items.some(t=>t&&t.date===L.date&&(t.kind==='expense'||t.kind==='income')),ib=await db.get(`users/${uid}/inbox`)||{},pend=Object.values(ib).some(x=>x&&x.at&&localDay(x.at,tz)===L.date);
         if(!any&&!pend){await tg.call('sendMessage',{chat_id:chat,text:'🌙 مسجلتش ولا مصروف النهارده.\nصرفت حاجة؟ ابعتهالي، مثلاً: <code>غدا 45</code>',parse_mode:'HTML',reply_markup:{inline_keyboard:[[{text:'✅ مصرفتش حاجة النهارده',callback_data:'z'}]]}});sent++}
         await db.update(`tgsent/${uid}`,{n:L.date})}
+      if(p.morning!==false&&L.h>=+p.mh&&L.h<+p.mh+4&&st.m!==L.date){await db.update(`tgsent/${uid}`,{m:L.date});const dg=await db.get(`users/${uid}/tgdigest`)||{},y=addD(L.date,-1),its=(await monthTx(db,uid,y.slice(0,7))).filter(t=>t&&t.date===y&&t.kind==='expense'&&!(t.scope==='company'&&t.rec)),by={};its.forEach(t=>{by[t.cur]=(by[t.cur]||0)+(+t.amount||0)});
+        const today=(dg.days&&dg.days[L.date])||[],sp=Object.entries(by).map(([c,v])=>`${fmt(Math.round(v))} ${sym(c)}`).join(' + ');
+        const txt=`☀️ <b>صباح الخير!</b>\n${today.length?'📅 النهارده:\n'+today.map(x=>'• '+esc(x)).join('\n'):'📅 مفيش مستحقات النهارده 👌'}\n\n💸 امبارح: ${sp?esc(sp)+` (${its.length} حركة)`:'مسجلتش مصاريف'}${dg.mtd!=null&&dg.sym?`\n📊 الشهر لحد دلوقتي: ${fmt(dg.mtd)} ${esc(dg.sym)}`:''}`;
+        await tg.call('sendMessage',{chat_id:chat,text:txt,parse_mode:'HTML'});sent++}
       if(p.report!==false&&L.d===1&&L.h>=9&&st.r!==L.date.slice(0,7)){await db.update(`tgsent/${uid}`,{r:L.date.slice(0,7)});await sendReport(db,tg,uid,chat,prevM(L.date.slice(0,7)));sent++}}
     catch(e){log('tick',uid,e&&e.message)}}
   log(JSON.stringify({tgTick:sent}));return{sent}}
