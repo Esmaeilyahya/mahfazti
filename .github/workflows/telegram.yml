@@ -17,7 +17,10 @@ jobs:
         id: chk
         env:
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
-        run: if [ -z "$TG_TOKEN" ]; then echo "skip=1" >> "$GITHUB_OUTPUT"; echo "TG_TOKEN not set — skipping"; fi
+          CF: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          if [ -z "$TG_TOKEN" ]; then echo "skip=1" >> "$GITHUB_OUTPUT"; echo "TG_TOKEN not set — skipping"; fi
+          if [ -n "$CF" ]; then echo "skip=1" >> "$GITHUB_OUTPUT"; echo "Bot runs on Cloudflare — poller not needed"; fi
       - uses: actions/checkout@v4
         if: steps.chk.outputs.skip != '1'
       - uses: actions/setup-node@v4

@@ -1,6 +1,6 @@
 name = "mahfazti-bot"
 main = "tg-worker.mjs"
-compatibility_date = "2025-01-01"
+compatibility_date = "2024-09-01"
 
 [vars]
 DB_URL = "https://my-financial-system-7a929-default-rtdb.europe-west1.firebasedatabase.app"

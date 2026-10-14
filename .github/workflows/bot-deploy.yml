@@ -1,0 +1,58 @@
+name: bot-deploy-cloudflare
+# Deploys the Telegram bot to Cloudflare Workers (instant replies) and points Telegram at it.
+# Needs repository secrets: CF_API_TOKEN, CF_ACCOUNT_ID, TG_TOKEN, FIREBASE_SA. Nothing secret is stored in the repo.
+on:
+  push:
+    branches: [main]
+    paths: ['worker/**', 'scripts/tg-core.mjs', '.github/workflows/bot-deploy.yml']
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: bot-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      TG_TOKEN: ${{ secrets.TG_TOKEN }}
+      FIREBASE_SA: ${{ secrets.FIREBASE_SA }}
+    steps:
+      - name: Check secrets
+        id: chk
+        run: |
+          miss=""
+          for k in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID TG_TOKEN FIREBASE_SA; do [ -z "${!k}" ] && miss="$miss $k"; done
+          if [ -n "$miss" ]; then echo "missing:$miss"; echo "skip=1" >> "$GITHUB_OUTPUT"; [ "${{ github.event_name }}" = "workflow_dispatch" ] && exit 1 || exit 0; fi
+      - uses: actions/checkout@v4
+        if: steps.chk.outputs.skip != '1'
+      - uses: actions/setup-node@v4
+        if: steps.chk.outputs.skip != '1'
+        with:
+          node-version: 20
+      - name: Deploy worker
+        if: steps.chk.outputs.skip != '1'
+        working-directory: worker
+        run: |
+          npx --yes wrangler@3.78.0 deploy 2>&1 | tee deploy.log
+          url=$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' deploy.log | head -1)
+          if [ -z "$url" ]; then echo "::error::No workers.dev URL — open Cloudflare → Workers & Pages once and pick your workers.dev subdomain, then re-run."; exit 1; fi
+          echo "URL=$url" >> "$GITHUB_ENV"; echo "Worker: $url"
+      - name: Set worker secrets
+        if: steps.chk.outputs.skip != '1'
+        working-directory: worker
+        run: |
+          sec=$(printf '%s' "$TG_TOKEN" | sha256sum | cut -c1-40); echo "::add-mask::$sec"
+          printf '%s' "$TG_TOKEN" | npx --yes wrangler@3.78.0 secret put TG_TOKEN
+          printf '%s' "$FIREBASE_SA" | npx --yes wrangler@3.78.0 secret put FIREBASE_SA
+          printf '%s' "$sec" | npx --yes wrangler@3.78.0 secret put TG_SECRET
+          echo "SEC=$sec" >> "$GITHUB_ENV"
+      - name: Point Telegram at the worker
+        if: steps.chk.outputs.skip != '1'
+        run: |
+          sleep 8
+          r=$(curl -s "$URL/setup?key=$SEC"); echo "$r" | sed 's/"url":"[^"]*"/"url":"…"/'
+          echo "$r" | grep -q '"ok":true' || { echo "::error::Telegram webhook setup failed"; exit 1; }
