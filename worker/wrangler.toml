@@ -1,5 +1,6 @@
 name = "mahfazti-bot"
 main = "tg-worker.mjs"
+account_id = "a4a9faadd7ea5c5e2923b78eb61a7a20"
 compatibility_date = "2024-09-01"
 
 [vars]
