@@ -18,8 +18,11 @@ function restDb(env){const sa=JSON.parse(env.FIREBASE_SA),base=String(env.DB_URL
 const tgApi=env=>({call:async(m,params)=>{const r=await fetch(`https://api.telegram.org/bot${env.TG_TOKEN}/${m}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(params||{})});return r.json()}});
 export default{async fetch(req,env,ctx){const url=new URL(req.url);
   if(req.method==='GET'&&url.pathname==='/setup'){if(url.searchParams.get('key')!==env.TG_SECRET)return new Response('forbidden',{status:403});
-    const me=await tgApi(env).call('getMe');if(me.ok&&me.result&&me.result.username)await restDb(env).set('tgcfg',{bot:me.result.username,at:Date.now()});
-    const r=await tgApi(env).call('setWebhook',{url:url.origin+'/tg',secret_token:env.TG_SECRET,allowed_updates:['message','callback_query'],drop_pending_updates:false});return new Response(JSON.stringify(r),{headers:{'content-type':'application/json'}})}
+    const out={};try{out.webhook=await tgApi(env).call('setWebhook',{url:url.origin+'/tg',secret_token:env.TG_SECRET,allowed_updates:['message','callback_query'],drop_pending_updates:false});
+      const me=await tgApi(env).call('getMe');out.bot=me.ok&&me.result?me.result.username:null;if(!me.ok)out.me=me.description;
+      try{if(out.bot)await restDb(env).set('tgcfg',{bot:out.bot,at:Date.now()});out.db=true}catch(e){out.db=String(e&&e.message||e).slice(0,200)}}
+    catch(e){out.error=String(e&&e.message||e).slice(0,200)}
+    out.ok=!!(out.webhook&&out.webhook.ok);return new Response(JSON.stringify(out),{headers:{'content-type':'application/json'}})}
   if(req.method==='POST'&&url.pathname==='/tg'){if(req.headers.get('x-telegram-bot-api-secret-token')!==env.TG_SECRET)return new Response('forbidden',{status:403});
     const u=await req.json().catch(()=>null);if(u)ctx.waitUntil(handleUpdate(u,{db:restDb(env),tg:tgApi(env),log:console.log}).catch(e=>console.log('tg error',e&&e.message)));return new Response('ok')}
   return new Response('محفظتي Pro bot',{status:200})}};

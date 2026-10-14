@@ -52,6 +52,11 @@ jobs:
       - name: Point Telegram at the worker
         if: steps.chk.outputs.skip != '1'
         run: |
-          sleep 8
-          r=$(curl -s "$URL/setup?key=$SEC"); echo "$r" | sed 's/"url":"[^"]*"/"url":"…"/'
-          echo "$r" | grep -q '"ok":true' || { echo "::error::Telegram webhook setup failed"; exit 1; }
+          for i in $(seq 1 18); do
+            code=$(curl -s -o resp.txt -w '%{http_code}' "$URL/setup?key=$SEC" || true)
+            body=$(head -c 300 resp.txt | tr '\n' ' ')
+            echo "try $i: HTTP $code $body"
+            if [ "$code" = "200" ] && grep -q '"ok":true' resp.txt; then echo "::notice::Bot ready: $body"; exit 0; fi
+            sleep 10
+          done
+          echo "::error::Webhook setup failed: HTTP $code $body"; exit 1
