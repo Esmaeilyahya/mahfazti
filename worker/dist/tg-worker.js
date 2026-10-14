@@ -221,6 +221,8 @@ var tg_worker_default = { async fetch(req, env, ctx) {
   const url = new URL(req.url);
   if (req.method === "GET" && url.pathname === "/setup") {
     if (url.searchParams.get("key") !== env.TG_SECRET) return new Response("forbidden", { status: 403 });
+    const me = await tgApi(env).call("getMe");
+    if (me.ok && me.result && me.result.username) await restDb(env).set("tgcfg", { bot: me.result.username, at: Date.now() });
     const r = await tgApi(env).call("setWebhook", { url: url.origin + "/tg", secret_token: env.TG_SECRET, allowed_updates: ["message", "callback_query"], drop_pending_updates: false });
     return new Response(JSON.stringify(r), { headers: { "content-type": "application/json" } });
   }

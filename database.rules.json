@@ -61,6 +61,9 @@
         ".write": "auth != null && !data.exists() && newData.child('uid').val() === auth.uid",
         ".validate": "$code.matches(/^[A-Z0-9]{10}$/) && newData.hasChildren(['uid','at']) && newData.child('at').isNumber()"
       }
+    },
+    "tgcfg": {
+      ".read": "auth != null"
     }
   }
 }

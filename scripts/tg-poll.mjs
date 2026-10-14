@@ -9,6 +9,7 @@ const rdb=admin.database();
 const db={get:async p=>(await rdb.ref(p).once('value')).val(),set:(p,v)=>rdb.ref(p).set(v),update:(p,v)=>rdb.ref(p).update(v),remove:p=>rdb.ref(p).remove()};
 const tg={call:async(m,params)=>{const r=await fetch(`https://api.telegram.org/bot${TG_TOKEN}/${m}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(params||{})});return r.json()}};
 try{const me=await tg.call('getMe');if(!me.ok){console.log('tg: token rejected by Telegram');process.exitCode=1}else{
+  const un=me.result&&me.result.username;if(un){const cur=await db.get('tgcfg/bot');if(cur!==un){await db.set('tgcfg',{bot:un,at:Date.now()});console.log('tg: bot registered @'+un)}}
   const wh=await tg.call('getWebhookInfo');if(wh.ok&&wh.result&&wh.result.url){console.log('tg: webhook mode is active (Cloudflare) — poller idle');}
   else{const r=await poll({db,tg});if(r.error)process.exitCode=1}}}
 catch(e){console.error(e);process.exitCode=1}
