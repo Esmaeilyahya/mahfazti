@@ -64,6 +64,20 @@
     },
     "tgcfg": {
       ".read": "auth != null"
+    },
+    "shares": {
+      "$tok": {
+        ".read": "$tok.matches(/^[A-Za-z0-9]{24}$/)",
+        ".write": "auth != null && (data.exists() ? data.child('uid').val() === auth.uid : newData.child('uid').val() === auth.uid)",
+        ".validate": "$tok.matches(/^[A-Za-z0-9]{24}$/) && newData.hasChildren(['uid','at','d'])",
+        "reply": {
+          ".write": "newData.exists()",
+          ".validate": "newData.hasChildren(['ok','at','sig']) && newData.child('ok').isBoolean() && newData.child('at').isNumber() && newData.child('at').val() <= now + 60000 && newData.child('sig').isString() && newData.child('sig').val().length < 200 && (!newData.child('note').exists() || (newData.child('note').isString() && newData.child('note').val().length <= 500))",
+          "$o": {
+            ".validate": "$o === 'ok' || $o === 'at' || $o === 'sig' || $o === 'note'"
+          }
+        }
+      }
     }
   }
 }
