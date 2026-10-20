@@ -78,6 +78,32 @@
           }
         }
       }
+    },
+    "duels": {
+      "$code": {
+        ".read": "auth != null && $code.matches(/^[A-Z0-9]{8}$/)",
+        "meta": {
+          ".write": "auth != null && !data.exists() && newData.child('owner').val() === auth.uid",
+          ".validate": "newData.hasChildren(['owner','title','at']) && newData.child('title').isString() && newData.child('title').val().length < 60 && newData.child('at').isNumber()"
+        },
+        "m": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && root.child('duels/' + $code + '/meta').exists()",
+            ".validate": "newData.hasChildren(['name','pct','mon','at']) && newData.child('name').isString() && newData.child('name').val().length < 40 && newData.child('pct').isNumber() && newData.child('pct').val() >= -1000 && newData.child('pct').val() <= 100 && newData.child('mon').isString() && newData.child('mon').val().length == 7 && newData.child('at').isNumber()"
+          }
+        }
+      }
+    },
+    "eidi": {
+      "$tok": {
+        ".read": "$tok.matches(/^[A-Za-z0-9]{20}$/)",
+        ".write": "auth != null && (data.exists() ? data.child('uid').val() === auth.uid : newData.child('uid').val() === auth.uid)",
+        ".validate": "$tok.matches(/^[A-Za-z0-9]{20}$/) && newData.hasChildren(['uid','d'])",
+        "op": {
+          ".write": "!data.exists() && newData.exists()",
+          ".validate": "newData.isNumber() && newData.val() <= now + 60000"
+        }
+      }
     }
   }
 }
