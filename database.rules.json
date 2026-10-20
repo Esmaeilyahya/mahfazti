@@ -104,6 +104,19 @@
           ".validate": "newData.isNumber() && newData.val() <= now + 60000"
         }
       }
+    },
+    "pools": {
+      "$tok": {
+        ".read": "$tok.matches(/^[A-Za-z0-9]{20}$/)",
+        ".write": "auth != null && (data.exists() ? data.child('uid').val() === auth.uid : newData.child('uid').val() === auth.uid)",
+        ".validate": "$tok.matches(/^[A-Za-z0-9]{20}$/) && newData.hasChildren(['uid','d'])",
+        "p": {
+          "$e": {
+            ".write": "!data.exists() && newData.exists() && !root.child('pools/' + $tok + '/closed').exists()",
+            ".validate": "newData.hasChildren(['name','amount','at']) && newData.child('name').isString() && newData.child('name').val().length >= 2 && newData.child('name').val().length <= 40 && newData.child('amount').isNumber() && newData.child('amount').val() > 0 && newData.child('amount').val() < 1000000 && newData.child('at').isNumber() && newData.child('at').val() <= now + 60000 && (!newData.child('msg').exists() || (newData.child('msg').isString() && newData.child('msg').val().length <= 120))"
+          }
+        }
+      }
     }
   }
 }
