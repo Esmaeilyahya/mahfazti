@@ -20,6 +20,7 @@ export const HELP=`ابعتلي أي حركة بالعربي وأنا أسجله
 • <code>آخر</code> — آخر الحركات · <code>تراجع</code> — يلغي آخر رسالة
 • <code>تقرير</code> — ملف تقرير الشهر (أو <code>تقرير الشهر اللي فات</code>)
 • 📩 اعمل Forward لرسالة البنك وأنا أسجلها
+• 🚕 الصق إيصال أوبر أو جيني أو كريم من الإيميل — يتسجل مصروف شغل للاسترداد
 • 📸 ابعت صورة الفاتورة والمحفظة تقراها`;
 
 export function preview(text,core){const t=normDigits(text).replace(/\s+/g,' ').trim(),n=norm(t),m=t.match(/(\d+(?:[.,]\d+)?)/);if(!m)return null;
@@ -74,7 +75,7 @@ export async function handleUpdate(u,{db,tg,now=Date.now(),log=()=>{}}){
     const r=await undo(db,uid,chat,d.slice(2),now);await tg.call('editMessageText',{chat_id:chat,message_id:q.message.message_id,text:r,parse_mode:'HTML'});return}
   const msg=u.message;if(!msg||!msg.chat||msg.chat.type!=='private')return;const chat=msg.chat.id,raw=String(msg.text||'').trim(),isImg=(Array.isArray(msg.photo)&&msg.photo.length)||(msg.document&&/^image\//.test(msg.document.mime_type||''));
   if(!raw&&!isImg)return reply(chat,'ابعتلي نص أو صورة فاتورة — مثلاً: <code>غدا 45</code>');
-  const fwd=!!(msg.forward_origin||msg.forward_date||msg.forward_from||msg.forward_sender_name),sms=!!raw&&(fwd||looksSMS(raw)),text=raw.slice(0,sms?700:200),n=norm(text),at=(+msg.date||0)*1000||now;
+  const fwd=!!(msg.forward_origin||msg.forward_date||msg.forward_from||msg.forward_sender_name),ride=!!raw&&looksRide(raw),sms=!!raw&&(fwd||ride||looksSMS(raw)),text=raw.slice(0,ride?2500:sms?700:200),n=norm(text),at=(+msg.date||0)*1000||now;
   const st=text.match(/^\/start(?:\s+([A-Z0-9]{10}))?$/);
   if(st&&st[1]){const L=await db.get(`tglink/${st[1]}`);if(!L||!L.uid||now-(+L.at||0)>30*60e3)return reply(chat,'⚠️ الرابط ده انتهى — ارجع للمحفظة ← الإعدادات ← تليجرام ودوس «اربط» تاني.');
     const name=[msg.from&&msg.from.first_name,msg.from&&msg.from.last_name].filter(Boolean).join(' ').slice(0,60);
@@ -93,8 +94,8 @@ export async function handleUpdate(u,{db,tg,now=Date.now(),log=()=>{}}){
     return reply(chat,'📸 الفاتورة وصلت — افتح المحفظة وهتلاقيها مستنياك تأكد المبلغ.',{reply_markup:{inline_keyboard:[[{text:'↩️ تراجع',callback_data:'u:'+id}]]}})}
   if(!sms&&/^\/report$|^تقرير/.test(n)){const tz=(await db.get(`push/${uid}/cfg/tz`))||'Asia/Riyadh',cm=localDay(now,tz).slice(0,7);await sendReport(db,tg,uid,chat,/(اللي فات|الماضي|السابق)/.test(n)?prevM(cm):cm);return}
   if(!sms&&QRX.test(n))return reply(chat,await spendReport(db,uid,period(n),now));
-  if(sms){const ib=await db.get(`users/${uid}/inbox`)||{};if(Object.keys(ib).length>=300)return reply(chat,'📥 الصندوق مليان — افتح المحفظة مرة الأول.');const id='s'+rid();await db.set(`users/${uid}/inbox/${id}`,{text,sms:true,at,chat:String(chat)});await db.set(`tg/last/${chat}`,id);
-    return reply(chat,'📩 رسالة البنك وصلت — المحفظة هتقراها وتسجلها أول ما تفتحها.',{reply_markup:{inline_keyboard:[[{text:'↩️ تراجع',callback_data:'u:'+id}]]}})}
+  if(sms){const ib=await db.get(`users/${uid}/inbox`)||{};if(Object.keys(ib).length>=300)return reply(chat,'📥 الصندوق مليان — افتح المحفظة مرة الأول.');const id='s'+rid();await db.set(`users/${uid}/inbox/${id}`,ride?{text,sms:true,ride:true,at,chat:String(chat)}:{text,sms:true,at,chat:String(chat)});await db.set(`tg/last/${chat}`,id);
+    return reply(chat,ride?'🚕 إيصال المشوار وصل — هيتسجل مصروف شغل (أوبر وتاكسي) مع شهر الاسترداد أول ما تفتح المحفظة.':'📩 رسالة البنك وصلت — المحفظة هتقراها وتسجلها أول ما تفتحها.',{reply_markup:{inline_keyboard:[[{text:'↩️ تراجع',callback_data:'u:'+id}]]}})}
   const inbox=await db.get(`users/${uid}/inbox`)||{};if(Object.keys(inbox).length>=300)return reply(chat,'📥 الصندوق مليان — افتح المحفظة مرة علشان تتسجل الرسايل اللي فاتت.');
   const core=parseJ(await db.get(`users/${uid}/data/core`)),p=preview(text,core);
   if(!p)return reply(chat,'🤔 مفهمتش المبلغ — اكتبه بالأرقام، مثلاً: <code>غدا 45</code>\nاكتب <code>مساعدة</code> علشان تشوف الأمثلة.');
@@ -153,6 +154,7 @@ async function photoData(tg,msg){let fid=null,mime='image/jpeg';if(Array.isArray
   else if(msg.document&&/^image\//.test(msg.document.mime_type||'')){fid=msg.document.file_id;mime=msg.document.mime_type}if(!fid||!tg.file)return null;
   const f=await tg.call('getFile',{file_id:fid});if(!f||!f.ok||!f.result||!f.result.file_path)return null;if((+f.result.file_size||0)>1.8e6)return 'big';
   const buf=await tg.file(f.result.file_path);if(!buf||buf.byteLength>1.8e6)return 'big';return `data:${mime};base64,${toB64(new Uint8Array(buf))}`}
+export const looksRide=t=>{t=String(t||'');return t.length>20&&/\d/.test(t)&&/(uber|أوبر|اوبر|careem|jeeny|جيني|bolt|بولت|thanks for riding)/i.test(t)&&/(total|الإجمالي|الاجمالي|المجموع|trip|رحلة|رحلتك|مشوار|fare|الأجرة|الاجرة|receipt|إيصال|ايصال|riding)/i.test(t)};
 export const looksSMS=t=>{t=String(t||'');return t.length>35&&/\d/.test(t)&&/(شراء|purchase|مدى|mada|debited|credited|خصم|إيداع|ايداع|حوال|pos\b|بطاق|card|رصيد|balance|سحب|withdraw|instapay|انستاباي|إنستاباي|تحويل وارد|تم تحويل)/i.test(t)};
 
 /* ---------- hourly tick: nightly reminder + monthly report ---------- */
