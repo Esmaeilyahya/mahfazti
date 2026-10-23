@@ -19,6 +19,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
       TG_TOKEN: ${{ secrets.TG_TOKEN }}
       FIREBASE_SA: ${{ secrets.FIREBASE_SA }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
       - name: Check secrets
         id: chk
@@ -48,6 +49,7 @@ jobs:
           printf '%s' "$TG_TOKEN" | npx --yes wrangler@3.78.0 secret put TG_TOKEN
           printf '%s' "$FIREBASE_SA" | npx --yes wrangler@3.78.0 secret put FIREBASE_SA
           printf '%s' "$sec" | npx --yes wrangler@3.78.0 secret put TG_SECRET
+          if [ -n "$ANTHROPIC_API_KEY" ]; then printf '%s' "$ANTHROPIC_API_KEY" | npx --yes wrangler@3.78.0 secret put ANTHROPIC_API_KEY; echo "AI key set"; else echo "::notice::ANTHROPIC_API_KEY not set — AI assistant stays off"; fi
           echo "SEC=$sec" >> "$GITHUB_ENV"
       - name: Point Telegram at the worker
         if: steps.chk.outputs.skip != '1'
