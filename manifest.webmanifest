@@ -37,7 +37,33 @@
       "url": "./?a=quick",
       "icons": [
         {
-          "src": "icon-192.png",
+          "src": "img/sc-quick.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "مشوار شغل",
+      "short_name": "مشوار شغل",
+      "description": "مصروف أوبر/تاكسي للشغل — يسترد من الشركة",
+      "url": "./?a=ride",
+      "icons": [
+        {
+          "src": "img/sc-ride.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "تحويل لمصر",
+      "short_name": "تحويل لمصر",
+      "description": "تحويل من حسابك هنا لحسابك في مصر",
+      "url": "./?a=egx",
+      "icons": [
+        {
+          "src": "img/sc-egx.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -46,22 +72,11 @@
     {
       "name": "مصروف جديد",
       "short_name": "مصروف",
+      "description": "سجّل مصروف",
       "url": "./?a=exp",
       "icons": [
         {
-          "src": "icon-192.png",
-          "sizes": "192x192",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "تسجيل سلفة",
-      "short_name": "سلفة",
-      "url": "./?a=debt",
-      "icons": [
-        {
-          "src": "icon-192.png",
+          "src": "img/sc-exp.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -70,10 +85,24 @@
     {
       "name": "لصق رسالة البنك",
       "short_name": "رسالة بنك",
+      "description": "الصق رسالة البنك وتتسجل لوحدها",
       "url": "./?a=sms",
       "icons": [
         {
-          "src": "icon-192.png",
+          "src": "img/sc-sms.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "تسجيل سلفة",
+      "short_name": "سلفة",
+      "description": "سلفة ليك أو عليك",
+      "url": "./?a=debt",
+      "icons": [
+        {
+          "src": "img/sc-debt.png",
           "sizes": "192x192",
           "type": "image/png"
         }
